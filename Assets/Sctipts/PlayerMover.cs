@@ -1,67 +1,41 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerMover : MonoBehaviour {
 
-	public float moveDuration = .05f;
-
-	public WayPoint currentWayPoint;
-	private WayPoint nextWayPoint;
-	private bool moving;
-	private float nextMoveTime;
 	public GameObject playerRig;
 	private Animator animator;
 
-	void Awake()
-	{
+	public float speed = 2f;
+	public Transform upMovementDot;
+	public Transform bottomMovementDot;
+
+	private float bottom;
+	private float up;
+
+	void Awake() {
 		animator = playerRig.GetComponent<Animator> ();
+
+		bottom = bottomMovementDot.transform.position.y;
+		up = upMovementDot.transform.position.y;
 	}
 
-	void Update () 
-	{
-		if (Time.time > nextMoveTime) 
-		{
-			nextMoveTime = Time.time + moveDuration;
 
-			if (Input.GetAxisRaw("Vertical") == 1f)
-			{
-				if (currentWayPoint.wayPointAbove != null)
-					nextWayPoint = currentWayPoint.wayPointAbove;
+	void Update ()  {
+		float vAxis = Input.GetAxisRaw ("Vertical"); 
+		if (vAxis != 0f) {
+			Vector3 newPos = transform.position + new Vector3 (0, vAxis * speed * Time.deltaTime, 0);
+			if (newPos.y < bottom){
+				newPos.y = bottom;
 			}
-
-			if (Input.GetAxisRaw("Vertical") == -1f) 
-			{
-				if (currentWayPoint.wayPointBelow != null)
-					nextWayPoint = currentWayPoint.wayPointBelow;
+			if (newPos.y > up){
+				newPos.y = up;
 			}
-
-			if (!moving && nextWayPoint != null) 
-			{
-				StartCoroutine (TransitionWaypoints ());
+			if (newPos != transform.position) {
+				transform.position = newPos;
+				animator.Play ("NancyMove");
 			}
 
 		}
-
-	}
-
-	IEnumerator TransitionWaypoints()
-	{
-
-		float elapsedTime = 0;
-		moving = true;
-		animator.Play("NancyMove");
-
-		while (elapsedTime <= moveDuration) 
-		{
-			transform.position = Vector2.Lerp (currentWayPoint.transform.position, nextWayPoint.transform.position, (elapsedTime / moveDuration));
-			elapsedTime += Time.deltaTime;
-			yield return null;
-		} 
-
-		currentWayPoint = nextWayPoint;
-		nextWayPoint = null;
-		moving = false;
 	}
 
 }
