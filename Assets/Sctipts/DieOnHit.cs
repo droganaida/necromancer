@@ -58,13 +58,12 @@ public class DieOnHit : MonoBehaviour {
 	{
 		if (collision.gameObject.CompareTag ("Bullet")) 
 		{
+			// TODO: логику чо делать с обьектом, должен делать сам обьект...
+			gameController.RemoveBulletFromList (collision.gameObject);
 			collision.gameObject.SetActive (false);
+			collision.gameObject.GetComponent<PooledObject> ().pool.ReturnObject (collision.gameObject);
+
 			StartCoroutine (charDamage (1));
-			/* knightSprites.SetActive (false);
-			explosion.SetActive (true);
-			StartCoroutine(DelayDeactivate(explosion));
-			UpdateScore ();
-			mover.Stop (); */
 		}
 	}
 
@@ -92,6 +91,7 @@ public class DieOnHit : MonoBehaviour {
 			UpdateScore ();
 			mover.Stop ();
 			currentHealthPoints = healthPoints;
+			gameController.RemoveEnemyToList (this.gameObject);
 		} else {
 			animName = "PeasantGoDamage" + currentHealthPoints;
 			animator.SetTrigger(animName);
@@ -107,5 +107,15 @@ public class DieOnHit : MonoBehaviour {
 		{
 			gameController.AddScore (pointsValue);
 		}
+	}
+
+	public void Portal (){
+		playerRig.SetActive (false);
+		explosion.SetActive (true);
+		StartCoroutine (DelayDeactivate (explosion));
+		gameController.TakeDamage (currentHealthPoints);
+		mover.Stop ();
+		currentHealthPoints = healthPoints;
+		gameController.RemoveEnemyToList (this.gameObject);
 	}
 }

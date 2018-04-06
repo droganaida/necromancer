@@ -10,26 +10,41 @@ public class Shoot : MonoBehaviour {
 	public GameObject playerRig;
 	private Animator playerAnimator;
 
-	void Awake()
-	{
+	public float weaponCooldown = 0.3f;
+	private float timerFire;	// 
+	public SimpleObjectPool[] objectPool;
+	public GameController gameController;
+	private Transform bullets;
+
+	void Awake() {
 		playerAnimator = playerRig.GetComponent<Animator> ();
+		timerFire = weaponCooldown;
+
+		if (bullets != null) {
+			Destroy (GameObject.Find("Bullets"));
+		}
+		bullets = new GameObject ("Bullets").transform;
+
 	}
 
 	// Update is called once per frame
-	void Update () 
-	{
-		if (Input.GetButtonDown ("Fire1") && !cannonBall.activeSelf) 
-		{
-			//playerAnimator.SetTrigger ("NancyAttack");
-			playerAnimator.Play ("NancyAttack");
-			ShootBullet ();
+	void Update ()  {
+		timerFire -= Time.deltaTime;
 
+		// timerFire < 0.0f - время калдауна
+		if (Input.GetButtonDown ("Fire1") && timerFire < 0.0f) {
+			playerAnimator.Play ("NancyAttack");
+			timerFire = weaponCooldown;
+
+			ShootBullet ();
 		}	
 	}
 
-	void ShootBullet()
-	{
-		cannonBall.gameObject.SetActive (true);
-		cannonBall.transform.position = bulletSpawnPoint.position;
+	void ShootBullet() {
+		GameObject clone = objectPool[0].GetObject();
+		clone.SetActive (true);
+		clone.transform.position = bulletSpawnPoint.position;
+		clone.transform.SetParent (bullets);
+		gameController.AddBulletToList (clone);
 	}
 }

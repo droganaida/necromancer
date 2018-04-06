@@ -7,9 +7,11 @@ public class TriggerGameOver : MonoBehaviour {
 	public GameController gameController;
 
 
-	void OnTriggerEnter2D()
-	{
-		gameController.EndGame ();
+	void OnTriggerEnter2D(Collider2D something)	{
+		if (something.gameObject.CompareTag ("Enemy")) {
+			something.gameObject.GetComponent<DieOnHit> ().Portal ();
+		}
+		//gameController.EndGame ();
 	}
 
 }

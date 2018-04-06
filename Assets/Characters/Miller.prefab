@@ -60,7 +60,7 @@ GameObject:
   - component: {fileID: 114017415702027452}
   m_Layer: 0
   m_Name: Miller
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -444,8 +444,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   explosion: {fileID: 1773475491379690}
   playerRig: {fileID: 1173970743187440}
-  pointsValue: 1
-  healthPoints: 4
+  pointsValue: 3
+  healthPoints: 3
 --- !u!114 &114142902253266592
 MonoBehaviour:
   m_ObjectHideFlags: 1

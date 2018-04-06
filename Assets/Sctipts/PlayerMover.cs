@@ -24,12 +24,15 @@ public class PlayerMover : MonoBehaviour {
 		float vAxis = Input.GetAxisRaw ("Vertical"); 
 		if (vAxis != 0f) {
 			Vector3 newPos = transform.position + new Vector3 (0, vAxis * speed * Time.deltaTime, 0);
+			// проверка на нижнюю границу перемещения
 			if (newPos.y < bottom){
 				newPos.y = bottom;
 			}
+			// проверка на вехнюю границу перемещения
 			if (newPos.y > up){
 				newPos.y = up;
 			}
+			// если новая позиция игрока не изменилась, то и нечего включать анимацию и изменять позицию
 			if (newPos != transform.position) {
 				transform.position = newPos;
 				animator.Play ("NancyMove");

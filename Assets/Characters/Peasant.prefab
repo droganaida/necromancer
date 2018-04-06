@@ -27,7 +27,7 @@ GameObject:
   - component: {fileID: 114479110860352790}
   m_Layer: 0
   m_Name: Peasant
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -383,7 +383,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   explosion: {fileID: 1209336302114388}
   playerRig: {fileID: 1594934551756042}
-  pointsValue: 1
+  pointsValue: 2
   healthPoints: 2
 --- !u!114 &114824155971396946
 MonoBehaviour:

@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class DeactivateAfterTime : MonoBehaviour {
 
-	public float timeToWait = 2f;
+	public float timeToWait = 3f;
+	private GameController gameController;
 
 	private WaitForSeconds waitForTime;
 	void Awake()
@@ -26,7 +27,10 @@ public class DeactivateAfterTime : MonoBehaviour {
 	IEnumerator WaitAndDeactivate () 
 	{
 		yield return waitForTime;
+
+		gameController.RemoveBulletFromList (this.gameObject);
 		gameObject.SetActive (false);
+		gameObject.GetComponent<PooledObject> ().pool.ReturnObject (this.gameObject);
 	}
 
 }
