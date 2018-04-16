@@ -32,6 +32,7 @@ public class Shoot : MonoBehaviour {
 		timerFire -= Time.deltaTime;
 
 		// timerFire < 0.0f - время калдауна
+		// TODO: if GUI dont shoot
 		if (Input.GetButtonDown ("Fire1") && timerFire < 0.0f) {
 			playerAnimator.Play ("NancyAttack");
 			timerFire = weaponCooldown;

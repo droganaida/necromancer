@@ -27,6 +27,24 @@ public class GameController : MonoBehaviour {
 
 	private int score = 0;
 	private int HP = 20;
+	private LevelManager LM;
+	private int currentLevel;
+	private AudioManager audioManager;
+
+	public enum GameState {
+		SplashScreen = 0,
+		MainMenu = 1,
+		ChooseLevel = 2,
+		Game = 4,
+		Pause = 5,
+		Win = 6,
+		GameOver = 7,
+		Settings = 8,
+		Update = 9,
+		Achivment = 10,
+		MoreGame = 11,
+		Credits = 12
+	}
 
 	void Awake () {
 		panelMenu.SetActive (false);
@@ -35,6 +53,43 @@ public class GameController : MonoBehaviour {
 		btnMenu3.gameObject.SetActive (false);
 		btnMenu4.gameObject.SetActive (false);
 		btnMenu5.gameObject.SetActive (false);
+
+		LM = GetComponent<LevelManager> ();
+		if (PlayerPrefs.HasKey("curentLevel")) {
+			currentLevel = PlayerPrefs.GetInt ("curentLevel");
+		}
+
+	}
+
+	void Start() {
+		// caching
+		audioManager = AudioManager.instance;
+		if (audioManager == null) {
+			Debug.LogError ("Warning. Not found AudioManager on scene");
+		}
+
+		scoreValueDisplay.text = "Score: " + score.ToString ();
+		castleHP.text = "HP: " + HP.ToString ();
+
+		//yield return new WaitForSeconds (1f);
+		//mainText.text = " ";
+		spawnFromPool.StartSpawning ();
+	}
+
+	void createMap (int lev){
+		LM.loadLevel (lev);
+		//LevelBase newLev = "Level0" as LevelBase;
+	}
+
+	public void setLevel(int lev){
+		if (lev < 0)
+			return;
+		currentLevel = lev;
+	}
+	public void incLevel(int lev) {
+		if (lev < 0)
+			return;
+		currentLevel++;
 	}
 
 	public void AddBulletToList (GameObject bullet){
@@ -50,10 +105,10 @@ public class GameController : MonoBehaviour {
 		allEnemies.Remove (enemy);
 	}
 
-	public void AddScore(int points)
-	{
+	public void AddScore(int points) {
 		score += points;
 		scoreValueDisplay.text = "Score: " + score.ToString ();
+		//audioManager.PlaySound ("soundWow");
 	}
 	public void TakeDamage (int damage) {
 		HP -= damage;
@@ -63,18 +118,7 @@ public class GameController : MonoBehaviour {
 		castleHP.text = "HP: " + HP.ToString ();
 	}
 
-	void Start() {
-		
-		scoreValueDisplay.text = "Score: " + score.ToString ();
-		castleHP.text = "HP: " + HP.ToString ();
-
-		//yield return new WaitForSeconds (1f);
-		//mainText.text = " ";
-		spawnFromPool.StartSpawning ();
-	}
-
-	public void EndGame()
-	{
+	public void EndGame() {
 		Debug.Log ("================GAME OVER ");
 		Time.timeScale = 0.1f;
 		spawnFromPool.StopSpawning ();
@@ -83,18 +127,14 @@ public class GameController : MonoBehaviour {
 			// может удалить?
 			enemy.GetComponent<DieOnHit> ().Portal ();
 		}
-			
-		//mainText.text = "Game Over";
-		//reloadButton.SetActive (true);
 	}
 
-	public void RestartGame()
-	{
+	public void RestartGame() {
 		Time.timeScale = 1f;
 		SceneManager.LoadScene ("Main");
 	}
 
-	public void PauseGame (){
+	public void PauseGame () {
 		Time.timeScale = 0.0f;
 
 		panelGame.SetActive (false);
@@ -119,5 +159,16 @@ public class GameController : MonoBehaviour {
 
 	public void GameQuit (){
 		Application.Quit ();
+	}
+
+	void Update () {
+		//#if UNITY_ANDROID && !UNITY_EDITOR
+		//if running on Android, check for Menu/Home and exit
+		if (Application.platform == RuntimePlatform.Android) {
+			if (Input.GetKey(KeyCode.Escape) || Input.GetKey(KeyCode.Home) || Input.GetKey(KeyCode.Menu)) {
+				//Menu (9);
+			}
+		}
+		//#endif
 	}
 }
