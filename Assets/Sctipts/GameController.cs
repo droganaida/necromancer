@@ -9,56 +9,40 @@ public class GameController : MonoBehaviour {
 	// menu elements
 	public Text scoreValueDisplay;
 	public Text castleHP;
-	public GameObject panelMenu;
-	public GameObject panelGame;
-	public Button btnMenu1;
-	public Button btnMenu2;
-	public Button btnMenu3;
-	public Button btnMenu4;
-	public Button btnMenu5;
-	public Button btnPause;
-	public Button btnRestart;
+	public Text curLevel;
+	public Text unlockLev;
 
-	//public GameObject reloadButton;
 	public PooledSpawner spawnFromPool;
 
 	public List<GameObject> allBullets = new List<GameObject>();
 	public List<GameObject> allEnemies = new List<GameObject>();
+	public List<GameObject> allEffects = new List<GameObject>();
 
 	private int score = 0;
 	private int HP = 20;
 	private LevelManager LM;
 	private int currentLevel;
+	public int unlockLevel;
 	private AudioManager audioManager;
+	public SimpleObjectPool[] objectPool;
+	private PooledObject pooledObject;
+	private Transform enemies;
+	private MenuManager MM;
+	private int gameState;
 
-	public enum GameState {
-		SplashScreen = 0,
-		MainMenu = 1,
-		ChooseLevel = 2,
-		Game = 4,
-		Pause = 5,
-		Win = 6,
-		GameOver = 7,
-		Settings = 8,
-		Update = 9,
-		Achivment = 10,
-		MoreGame = 11,
-		Credits = 12
-	}
 
 	void Awake () {
-		panelMenu.SetActive (false);
-		btnMenu1.gameObject.SetActive (false);
-		btnMenu2.gameObject.SetActive (false);
-		btnMenu3.gameObject.SetActive (false);
-		btnMenu4.gameObject.SetActive (false);
-		btnMenu5.gameObject.SetActive (false);
-
 		LM = GetComponent<LevelManager> ();
-		if (PlayerPrefs.HasKey("curentLevel")) {
-			currentLevel = PlayerPrefs.GetInt ("curentLevel");
+		currentLevel = 1;
+
+		if (PlayerPrefs.HasKey("currentLevel")) {
+			currentLevel = PlayerPrefs.GetInt ("currentLevel");
+		} //PlayerPrefs.Save();
+		if (PlayerPrefs.HasKey("unlockLevel")) {
+			unlockLevel = PlayerPrefs.GetInt ("unlockLevel");
 		}
 
+		MM = GetComponent<MenuManager> ();
 	}
 
 	void Start() {
@@ -70,10 +54,26 @@ public class GameController : MonoBehaviour {
 
 		scoreValueDisplay.text = "Score: " + score.ToString ();
 		castleHP.text = "HP: " + HP.ToString ();
+		curLevel.text = "Level: " + currentLevel.ToString ();
+		unlockLev.text = "UnlockLev: " + unlockLevel.ToString ();
+///////////
 
-		//yield return new WaitForSeconds (1f);
-		//mainText.text = " ";
-		spawnFromPool.StartSpawning ();
+		StartGame ();
+	}
+		
+	// animation of death. deactivate after animation event
+	public void Boom (Vector3 pos) {
+		GameObject clone = objectPool[0].GetObject();
+		clone.SetActive (true);
+		clone.transform.position = pos;
+		if (enemies == null) {
+			enemies = GameObject.Find("Enemies").transform;
+		}
+		if (enemies != null) {
+			clone.transform.SetParent (enemies);
+		}
+		clone.GetComponent<EndAnimation> ().SetGameController (this);
+		AddEffectToList (clone);
 	}
 
 	void createMap (int lev){
@@ -85,11 +85,19 @@ public class GameController : MonoBehaviour {
 		if (lev < 0)
 			return;
 		currentLevel = lev;
+		//PlayerPrefs.SetInt ("unlockLevel",lev);
+		PlayerPrefs.SetInt ("currentLevel",currentLevel);
+		PlayerPrefs.Save ();
 	}
-	public void incLevel(int lev) {
-		if (lev < 0)
-			return;
+	public void incLevel() {
 		currentLevel++;
+		if (currentLevel >= unlockLevel) {
+			unlockLevel = currentLevel;
+			unlockLevel++;
+			PlayerPrefs.SetInt ("unlockLevel",unlockLevel);
+		}
+		PlayerPrefs.SetInt ("currentLevel",currentLevel);
+		PlayerPrefs.Save ();
 	}
 
 	public void AddBulletToList (GameObject bullet){
@@ -101,14 +109,45 @@ public class GameController : MonoBehaviour {
 	public void AddEnemyToList (GameObject enemy){
 		allEnemies.Add (enemy);
 	}
-	public void RemoveEnemyToList (GameObject enemy){
+	public void RemoveEnemyFromList (GameObject enemy){
 		allEnemies.Remove (enemy);
 	}
+	public void AddEffectToList (GameObject effect){
+		allEffects.Add (effect);
+	}
+	public void RemoveEffectFromList (GameObject effect){
+		allEffects.Remove (effect);
+	}
+
+	// wait some time, deactivate object and return object in pool
+	IEnumerator DelayDeactivate(GameObject deactivatedObject) {
+		yield return new WaitForSeconds (.25f);
+
+		RemoveEffectFromList(deactivatedObject);
+		pooledObject = deactivatedObject.GetComponent<PooledObject> ();
+		pooledObject.pool.ReturnObject (deactivatedObject);
+		deactivatedObject.SetActive (false);
+	}
+
+	// TODO: something for end animation event
+	public void Deactivate(GameObject deactivatedObject) {
+		RemoveEffectFromList(deactivatedObject);
+		pooledObject = deactivatedObject.GetComponent<PooledObject> ();
+		pooledObject.pool.ReturnObject (deactivatedObject);
+		deactivatedObject.SetActive (false);
+	}
+
 
 	public void AddScore(int points) {
 		score += points;
 		scoreValueDisplay.text = "Score: " + score.ToString ();
 		//audioManager.PlaySound ("soundWow");
+
+		if (score >= currentLevel * 10) {
+			spawnFromPool.StopSpawning ();
+
+			MM.toWin ();
+		}
 	}
 	public void TakeDamage (int damage) {
 		HP -= damage;
@@ -118,47 +157,24 @@ public class GameController : MonoBehaviour {
 		castleHP.text = "HP: " + HP.ToString ();
 	}
 
-	public void EndGame() {
+	public void StartGame (){
+		MM.ChangeMenu (MenuManager.GameState.Game);
+		spawnFromPool.StartSpawning ();
+
+	}
+
+	private void EndGame() {
 		Debug.Log ("================GAME OVER ");
 		Time.timeScale = 0.1f;
 		spawnFromPool.StopSpawning ();
 
-		foreach (GameObject enemy in allEnemies) {
-			// может удалить?
-			enemy.GetComponent<DieOnHit> ().Portal ();
-		}
+		MM.toGameOver ();
 	}
 
+	// TODO: пересмотреть рестарт гейм без лоад сцене
 	public void RestartGame() {
-		Time.timeScale = 1f;
+		MM.ChangeMenu (MenuManager.GameState.Game);
 		SceneManager.LoadScene ("Main");
-	}
-
-	public void PauseGame () {
-		Time.timeScale = 0.0f;
-
-		panelGame.SetActive (false);
-		panelMenu.SetActive (true);
-
-		btnMenu1.gameObject.SetActive (true);
-		btnMenu1.onClick.AddListener (ResumeGame);
-		btnMenu5.gameObject.SetActive (true);
-		btnMenu5.onClick.AddListener (GameQuit);
-	}
-
-	public void ResumeGame (){
-		btnMenu1.onClick.RemoveListener (ResumeGame);
-		btnMenu1.gameObject.SetActive (false);
-		btnMenu5.onClick.RemoveListener (GameQuit);
-		btnMenu5.gameObject.SetActive (false);
-		panelMenu.SetActive (false);
-		panelGame.SetActive (true);
-
-		Time.timeScale = 1f;
-	}
-
-	public void GameQuit (){
-		Application.Quit ();
 	}
 
 	void Update () {
