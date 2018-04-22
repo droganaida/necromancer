@@ -9,7 +9,8 @@ public class HealthBar : MonoBehaviour {
 
 	public void SetHB (float scaleHB){
 		if (scaleHB > 0.7f) {
-			ribbon.color = Color.green;
+			//ribbon.color = Color.green;
+			ribbon.color = new Color32( 0x47, 0xD7, 0x73, 0xFF );
 			if (scaleHB > 1f) {
 				scaleHB = 1f;
 			}

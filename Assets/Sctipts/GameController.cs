@@ -53,7 +53,7 @@ public class GameController : MonoBehaviour {
 		}
 
 		scoreValueDisplay.text = "Score: " + score.ToString ();
-		castleHP.text = "HP: " + HP.ToString ();
+		castleHP.text = HP.ToString ();
 		curLevel.text = "Level: " + currentLevel.ToString ();
 		unlockLev.text = "UnlockLev: " + unlockLevel.ToString ();
 ///////////
@@ -154,7 +154,7 @@ public class GameController : MonoBehaviour {
 		if (HP <= 0) {
 			EndGame ();
 		}
-		castleHP.text = "HP: " + HP.ToString ();
+		castleHP.text = HP.ToString ();
 	}
 
 	public void StartGame (){
