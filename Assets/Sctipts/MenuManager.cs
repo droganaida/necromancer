@@ -11,6 +11,7 @@ public class Menu {
 	//List<Action> listAction;
 
 }
+public delegate void MyDelegate(int input);
 
 public class MenuManager : MonoBehaviour {
 
@@ -28,9 +29,11 @@ public class MenuManager : MonoBehaviour {
 	public Button btnMenu5;
 	public Button btnPause;
 	public Button btnRestart;
+	public Transform selectContainer;
+	public GameObject btnSLPrefab;
 
-	private GameState nowMenu = 0;
-	private GameState prevMenu = 0;
+	private int unlockLevel;
+
 
 	public enum GameState {
 		SplashScreen = 0,
@@ -49,6 +52,8 @@ public class MenuManager : MonoBehaviour {
 
 	Dictionary<string, UnityAction> dicUA = new Dictionary<string, UnityAction>();
 	Dictionary<Button, UnityAction> listButton = new Dictionary<Button, UnityAction>();
+	List <GameObject> listBtnSL = new List<GameObject> ();
+
 
 
 	void Awake () {
@@ -70,16 +75,48 @@ public class MenuManager : MonoBehaviour {
 		dicUA.Add ("Start Game", toResumeGame);
 
 		// init all menu
+
+		// clear select button list
+		listBtnSL.Clear();
 	}
 
 	// Use this for initialization
 	void Start () {
-		
+		// init select level button
+		SettingBtnSL ();
+
+	}
+
+	void SettingBtnSL () {
+		for (int i = 1; i < 11; i++) {
+			// TODO: может это все сапрятать в ButtonSL ?
+			GameObject btn = Instantiate (btnSLPrefab) as GameObject;
+			btn.gameObject.transform.SetParent (selectContainer);
+			btn.GetComponentInChildren<Text> ().text = i.ToString ();
+			btn.transform.localScale = new Vector3 (1f, 1f, 1f);
+			btn.GetComponent<ButtonSL> ().SetGameController (GC);
+			btn.GetComponent<ButtonSL> ().SetMenuManager(this);
+			// TODO: можно сделать делегатом... меньше кода.
+			//btn.GetComponent<Button> ().onClick.AddListener (toSelectedLevel);
+			listBtnSL.Add (btn);
+			if (i <= GC.unlockLevel) {
+				btn.GetComponent<ButtonSL> ().setSprite ("unlockL");
+				btn.GetComponent<Button> ().onClick.AddListener (btn.GetComponent<ButtonSL> ().btnClick);
+				string nameLevel = "Level" + i.ToString ();
+				if (PlayerPrefs.HasKey (nameLevel)) {
+					btn.GetComponent<ButtonSL> ().setSculls (PlayerPrefs.GetInt (nameLevel));
+				}
+			} else {
+				btn.GetComponent<ButtonSL> ().setSprite ("lockL");
+			}
+		}
 	}
 
 	void setButtonElement (Button btn, string txt, UnityAction ua){
 		btn.gameObject.SetActive (true);
-		btn.GetComponentInChildren<Text> ().text = txt;
+		if (btn.GetComponentInChildren<Text> ()) {
+			btn.GetComponentInChildren<Text> ().text = txt;
+		}
 		btn.onClick.AddListener (ua);
 		listButton.Add (btn, ua);
 	}
@@ -89,10 +126,7 @@ public class MenuManager : MonoBehaviour {
 	}
 
 	public void ChangeMenu (GameState menu) {
-		print ("GameState: " + menu);
-		// TODO: maybe stack<menu> ?
-		prevMenu = nowMenu;
-		nowMenu = menu; 
+		print ("GameState: " + menu); 
 
 		// disable all
 		panelGame.SetActive (false);
@@ -113,42 +147,28 @@ public class MenuManager : MonoBehaviour {
 
 		Time.timeScale = 0.0f;
 
-		switch (nowMenu) {
+		switch (menu) {
 		// int something = (int) Question.Role;
 		case GameState.SplashScreen:
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 
-			setButtonElement (btnMenu5, "PLAY", toMainMenu);
+			setButtonElement (btnMenu5, "TAP", toMainMenu);
 			break;
 
 		case GameState.MainMenu:
-//			if (prevMenu == GameState.SplashScreen) {
-//				btnMenu5.onClick.RemoveListener (toMainMenu);
-//			}
-//			if (prevMenu == GameState.Win) {
-//				btnMenu1.onClick.RemoveListener (toResumeGame);
-//				btnMenu2.onClick.RemoveListener (GC.RestartGame);
-//				btnMenu5.onClick.RemoveListener (toMainMenu);
-//			}
-//			if (prevMenu == GameState.GameOver) {
-//				btnMenu1.onClick.RemoveListener (GC.RestartGame);
-//				//btnMenu2.onClick.RemoveListener (GC.RestartGame);
-//				btnMenu5.onClick.RemoveListener (toMainMenu);
-//			}
-//			if (prevMenu == GameState.Pause) {
-//				btnMenu1.onClick.RemoveListener (toResumeGame);
-//				btnMenu2.onClick.RemoveListener (GC.RestartGame);
-//				btnMenu5.onClick.RemoveListener (toMainMenu);
-//			}
-
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 
-			setButtonElement (btnMenu1, "New Game", toResumeGame);
+			// TODO: maybe Continue/New Game ? 
+			setButtonElement (btnMenu1, "Play Game", toSelectMenu);
 			setButtonElement (btnMenu2, "Settings", toSettings);
 			setButtonElement (btnMenu3, "Credits", toCredits);
 			setButtonElement (btnMenu4, "More Game", toMoreGames);
+			// TODO: настроить скриптом #if ...
+			/*
+			эппл запрещает делать кнопку выхода из приложения
+			*/
 			setButtonElement (btnMenu5, "Exit", toGameQuit);
 			break;
 
@@ -172,7 +192,7 @@ public class MenuManager : MonoBehaviour {
 
 			// TODO: добавить в список для дальнейшего удаления
 			setButtonElement (btnMenu1, "Resume", toResumeGame);
-			setButtonElement (btnMenu2, "Restart", GC.RestartGame);
+			setButtonElement (btnMenu2, "Restart", toRestartGame);
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
 			break;
 
@@ -181,7 +201,8 @@ public class MenuManager : MonoBehaviour {
 			panelButtonMenu.SetActive (true);
 
 			setButtonElement (btnMenu1, "Next", toNext);
-			setButtonElement (btnMenu2, "Restart", GC.RestartGame);
+			setButtonElement (btnMenu2, "Restart", toRestartGame);
+			setButtonElement (btnMenu3, "Select Level", toSelectMenu);
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
 			break;
 
@@ -189,7 +210,8 @@ public class MenuManager : MonoBehaviour {
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 
-			setButtonElement (btnMenu1, "Restart", GC.RestartGame);
+			setButtonElement (btnMenu1, "Restart", toRestartGame);
+			setButtonElement (btnMenu2, "Select Level", toSelectMenu);
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
 			break;
 
@@ -197,6 +219,9 @@ public class MenuManager : MonoBehaviour {
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 			setButtonElement (btnMenu1, "Clear Level", toClearLevel);
+			setButtonElement (btnMenu2, "Clear UnlockLevel", toClearAllLevel);
+			setButtonElement (btnMenu3, "Clear Scull data", toClearScullData);
+			setButtonElement (btnMenu4, "Clear ALL User Data", toClearAllUserData);
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
 			break;
 
@@ -232,40 +257,101 @@ public class MenuManager : MonoBehaviour {
 	public void toPauseGame () {
 		ChangeMenu (GameState.Pause);
 	}
+
 	public void toResumeGame (){
 		ChangeMenu (GameState.Game);
 	}
+
 	public void toGameQuit (){
 		print ("Application.Quit");
 		Application.Quit ();
 	}
+
 	public void toMainMenu () {
 		ChangeMenu (GameState.MainMenu);
 	}
+
 	public void toCredits () {
 		ChangeMenu (GameState.Credits);
 	}
+
 	public void toSettings () {
 		ChangeMenu (GameState.Settings);
 	}
+
 	public void toMoreGames () {
 		ChangeMenu (GameState.MoreGames);
 	}
+
 	public void toSelectMenu () {
+		// обновим buttonSL
+		RefreshBtnSL();
+
 		ChangeMenu (GameState.ChooseLevel);
 	}
+
 	public void toNext () {
-		GC.incLevel ();
 		GC.RestartGame ();
 	}
+
+	public void toStartGame (){
+		ChangeMenu (GameState.Game);
+		GC.StartGame ();
+	}
+
+	public void toRestartGame () { // Win/GameOver
+		GC.decLevel ();
+		GC.RestartGame ();
+	}
+
 	public void toGameOver(){
 		ChangeMenu (GameState.GameOver);
 	}
+
 	public void toWin (){
+		//GC.incLevel ();
 		ChangeMenu (GameState.Win);
 	}
+
 	public void toClearLevel(){
 		GC.setLevel (1);
 		ChangeMenu (GameState.MainMenu);
 	}
+
+	public void toClearAllLevel (){
+		GC.clearAllLevel ();
+		ChangeMenu (GameState.MainMenu);
+	}
+
+	public void toSelectedLevel (int lev){
+		GC.setLevel (lev);
+		ChangeMenu (GameState.Game);
+		GC.RestartGame ();
+		
+	}
+
+	public void toClearAllUserData (){
+		PlayerPrefs.DeleteAll ();
+		PlayerPrefs.Save ();
+		ChangeMenu (GameState.MainMenu);
+	}
+
+	public void toClearScullData () {
+		for (int i = 1; i <= GC.unlockLevel; i++) {
+			string nameLevel = "Level" + i.ToString ();
+			if (PlayerPrefs.HasKey (nameLevel)) {
+				PlayerPrefs.DeleteKey (nameLevel);
+			}
+		}
+		PlayerPrefs.Save ();
+		ChangeMenu (GameState.MainMenu);
+	}
+
+	void RefreshBtnSL(){
+		foreach (var item in listBtnSL) {
+			item.GetComponent<ButtonSL> ().RefreshScull ();
+			item.GetComponent<ButtonSL> ().RefreshSprite ();
+		}
+	}
+
 }
