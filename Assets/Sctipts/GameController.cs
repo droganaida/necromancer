@@ -1,53 +1,43 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour {
 
-	// menu elements
-	public Text scoreValueDisplay;
-	public Text castleHP;
-	public Text curLevel;
-	public Text unlockLev;
-
-	public PooledSpawner spawnFromPool;
-
 	public List<GameObject> allBullets = new List<GameObject>();
 	public List<GameObject> allEnemies = new List<GameObject>();
 	public List<GameObject> allEffects = new List<GameObject>();
-	private List<GameObject> allPool = new List<GameObject> ();
+	public List<GameObject> allPool = new List<GameObject> ();
 
 	private int score = 0;
 	private int maxHP = 20; //
 	private int HP;
 	private LevelManager LM;
-	public int currentLevel;
-	public int unlockLevel;
+	private MenuManager MM;
+	public int currentLevel = 1;
+	public int unlockLevel = 1;
 	private AudioManager audioManager;
 	public SimpleObjectPool[] objectPool;
 	private PooledObject pooledObject;
 	private Transform enemies;
-	private MenuManager MM;
 	private int gameState;
+	private bool isWave = false;
+	private bool isGame = false;
 
 
 	void Awake () {
 		LM = GetComponent<LevelManager> ();
+		MM = GetComponent<MenuManager> ();
 
 		if (PlayerPrefs.HasKey ("currentLevel")) {
 			currentLevel = PlayerPrefs.GetInt ("currentLevel");
-		} else {
-			currentLevel = 1;
 		}
 		if (PlayerPrefs.HasKey ("unlockLevel")) {
 			unlockLevel = PlayerPrefs.GetInt ("unlockLevel");
-		} else {
-			unlockLevel = 1;
 		}
-
-		MM = GetComponent<MenuManager> ();
 
 	}
 
@@ -56,13 +46,6 @@ public class GameController : MonoBehaviour {
 		audioManager = AudioManager.instance;
 		if (audioManager == null) {
 			Debug.LogError ("Warning. Not found AudioManager on scene");
-		}
-
-		// TODO: collect all pool
-		print ("spawnFromPool: "+spawnFromPool.gameObject.transform.childCount);
-		int childCount = spawnFromPool.gameObject.transform.childCount;
-		for (int i = 0; i < childCount; i++) {
-			allPool.Add (spawnFromPool.gameObject.transform.GetChild(i).gameObject);
 		}
 
 
@@ -93,7 +76,21 @@ public class GameController : MonoBehaviour {
 		}
 		PlayerPrefs.Save ();
 
+		//LM.LoadLevel (1);
+
 		//StartGame ();
+	}
+
+	public bool getStatusGame (){
+		return isGame;
+	}
+
+	public void setIsGame (bool b) {
+		isGame = b;
+	}
+
+	public int getScore (){
+		return score;
 	}
 
 /*
@@ -122,16 +119,15 @@ OnApplicationQuit: Эта функция вызывается для всех и
 	}
 
 	public void StartGame () {
-
 		HP = maxHP;
 
-		scoreValueDisplay.text = "Score: " + score.ToString ();
-		castleHP.text = HP.ToString ();
-		curLevel.text = "Lev: " + currentLevel.ToString ();
-		unlockLev.text = "ULev: " + unlockLevel.ToString ();
-		
-		spawnFromPool.StartSpawning ();
+		// TODO: все это переместить в ui-controller
+		MM.scoreValueDisplay.text = "Score: " + score.ToString ();
+		MM.castleHP.text = HP.ToString ();
+		MM.curLevel.text = "Lev: " + currentLevel.ToString ();
+		MM.unlockLev.text = "ULev: " + unlockLevel.ToString ();
 
+		LM.LoadLevel (currentLevel);
 	}
 
 	// TODO: пересмотреть рестарт гейм без лоад сцене
@@ -145,7 +141,7 @@ OnApplicationQuit: Эта функция вызывается для всех и
 	private void EndGame() {
 		Debug.Log ("================GAME OVER ");
 		Time.timeScale = 0.1f;
-		spawnFromPool.StopSpawning ();
+		LM.StopSpawning ();
 
 		MM.toGameOver ();
 	}
@@ -165,11 +161,6 @@ OnApplicationQuit: Эта функция вызывается для всех и
 		}
 		clone.GetComponent<EndAnimation> ().SetGameController (this);
 		AddEffectToList (clone);
-	}
-
-	void createMap (int lev){
-		LM.loadLevel (lev);
-		//LevelBase newLev = "Level0" as LevelBase;
 	}
 
 	// очистка открытых уровней
@@ -229,6 +220,7 @@ OnApplicationQuit: Эта функция вызывается для всех и
 
 	// убрать все с игрового поля
 	// TODO: осторожно! стремно работает :)
+	//
 	public void ClearAllList (){
 		// TODO: а не проще удалить контейнер?
 
@@ -264,8 +256,8 @@ OnApplicationQuit: Эта функция вызывается для всех и
 	}
 
 	// wait some time, deactivate object and return object in pool
-	IEnumerator DelayDeactivate(GameObject deactivatedObject) {
-		yield return new WaitForSeconds (.25f);
+	IEnumerator DelayDeactivate(GameObject deactivatedObject, float delayTime) {
+		yield return new WaitForSeconds (delayTime);//.25f
 
 		RemoveEffectFromList(deactivatedObject);
 		pooledObject = deactivatedObject.GetComponent<PooledObject> ();
@@ -281,42 +273,54 @@ OnApplicationQuit: Эта функция вызывается для всех и
 		deactivatedObject.SetActive (false);
 	}
 
-
+	// ведем счет нашим очкам
 	public void AddScore(int points) {
 		score += points;
-		scoreValueDisplay.text = "Score: " + score.ToString ();
+		MM.scoreValueDisplay.text = "Score: " + score.ToString ();
 		//audioManager.PlaySound ("soundWow");
 
-		if (score >= currentLevel * 10) {
-			spawnFromPool.StopSpawning ();
+		StartCoroutine (CheckGame());
+	}
 
-			// переключаем маркер на следующий уровень
-			incLevel ();
-			// начисление звезд
-			int scull = 0;
-			if (HP == maxHP) {
-				scull = 3;
-			} else if ((float)HP >= (float)maxHP * 0.7f) {
-				scull = 2;
-			} else {
-				scull = 1;
-			}
+	IEnumerator CheckGame (){
+		yield return new WaitForSeconds (0.3f);
 
-			// сохраняем значение в пользовательские данные
-			string nameLevel = "Level" + (currentLevel-1).ToString ();
-			if (PlayerPrefs.HasKey (nameLevel)) {
-				if (PlayerPrefs.GetInt(nameLevel) < scull) {
-					PlayerPrefs.SetInt (nameLevel, scull);
-				}
-			} else {
+		// проверка на конец уровня
+		if (allEnemies.Count == 0  && LM.CheckEndAllWave()) { 
+			WinGame ();
+		}
+
+		// проверка на следующую волну
+		if (allEnemies.Count == 0 && LM.CheckEndWave ()){
+			LM.StartTimer();
+		}
+	}
+
+	public void WinGame (){
+		// переключаем маркер на следующий уровень
+		incLevel ();
+		// начисление звезд
+		int scull = 0;
+		if (HP == maxHP) {
+			scull = 3;
+		} else if ((float)HP >= (float)maxHP * 0.7f) {
+			scull = 2;
+		} else {
+			scull = 1;
+		}
+
+		// сохраняем значение в пользовательские данные
+		string nameLevel = "Level" + (currentLevel-1).ToString ();
+		if (PlayerPrefs.HasKey (nameLevel)) {
+			if (PlayerPrefs.GetInt(nameLevel) < scull) {
 				PlayerPrefs.SetInt (nameLevel, scull);
 			}
-			PlayerPrefs.Save ();
-
-
-			MM.toWin ();
-
+		} else {
+			PlayerPrefs.SetInt (nameLevel, scull);
 		}
+		PlayerPrefs.Save ();
+
+		MM.toWin ();
 	}
 
 	// урон по базе
@@ -325,7 +329,9 @@ OnApplicationQuit: Эта функция вызывается для всех и
 		if (HP <= 0) {
 			EndGame ();
 		}
-		castleHP.text = HP.ToString ();
+		MM.castleHP.text = HP.ToString ();
+
+		StartCoroutine (CheckGame());
 	}
 
 	// ремонт базы
@@ -334,6 +340,16 @@ OnApplicationQuit: Эта функция вызывается для всех и
 		if (HP > maxHP) { // а может и не проверять? типа бонусные там, сколько насобирал то и пусть будет?
 			HP = maxHP;
 		}
+	}
+
+	// проверка что под курсором: игровой обьект или гуи
+	public bool CursorOverUI() {
+		#if (UNITY_ANDROID || UNITY_IOS) && (!UNITY_EDITOR)
+		int cursorID = Input.GetTouch(0).fingerId;
+		return EventSystem.current.IsPointerOverGameObject(cursorID);
+		#else
+		return EventSystem.current.IsPointerOverGameObject();
+		#endif
 	}
 
 

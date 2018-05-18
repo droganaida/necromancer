@@ -6,14 +6,13 @@ public class Shoot : MonoBehaviour {
 
 	public GameObject bulletPrefab;
 	public Transform bulletSpawnPoint;
-	public GameObject cannonBall;
 	public GameObject playerRig;
 	private Animator playerAnimator;
 
 	public float weaponCooldown = 0.3f;
 	private float timerFire;	// 
 	public SimpleObjectPool[] objectPool;
-	public GameController gameController;
+	public GameController gC;
 	private Transform bullets;
 
 	void Awake() {
@@ -30,16 +29,17 @@ public class Shoot : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update ()  {
-		timerFire -= Time.deltaTime;
+		if (gC.getStatusGame ()) {
+			timerFire -= Time.deltaTime;
 
-		// timerFire < 0.0f - время калдауна
-		// TODO: if GUI dont shoot
-		if (Input.GetButtonDown ("Fire1") && timerFire < 0.0f) {
-			playerAnimator.Play ("NancyAttack"); //NancyAttack NancyCast
-			timerFire = weaponCooldown;
+			// timerFire < 0.0f - время калдауна
+			if (Input.GetButtonDown ("Fire1") && timerFire < 0.0f && !gC.CursorOverUI ()) { 
+				playerAnimator.Play ("NancyAttack"); //NancyAttack NancyCast
+				timerFire = weaponCooldown;
 
-			ShootBullet ();
-		}	
+				ShootBullet ();
+			}	
+		}
 	}
 
 	void ShootBullet() {
@@ -47,6 +47,6 @@ public class Shoot : MonoBehaviour {
 		clone.SetActive (true);
 		clone.transform.position = bulletSpawnPoint.position;
 		clone.transform.SetParent (bullets);
-		gameController.AddBulletToList (clone);
+		gC.AddBulletToList (clone);
 	}
 }

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 [System.Serializable]
 public class Menu {
 	string name;
-	List<Button> listButton = new List<Button> ();
+	//List<Button> listButton = new List<Button> ();
 	//List<Action> listAction;
 
 }
@@ -15,7 +15,7 @@ public delegate void MyDelegate(int input);
 
 public class MenuManager : MonoBehaviour {
 
-	private GameController GC;
+	private GameController gC;
 
 	// menu elements
 	public GameObject panelGame;
@@ -31,6 +31,15 @@ public class MenuManager : MonoBehaviour {
 	public Button btnRestart;
 	public Transform selectContainer;
 	public GameObject btnSLPrefab;
+
+	// UI menu elements
+	public Text scoreValueDisplay;
+	public Text castleHP;
+	public Text curLevel;
+	public Text unlockLev;
+	public Text waveLevel;
+
+	public Button ScoreButtonNextWave;
 
 	private int unlockLevel;
 
@@ -57,7 +66,7 @@ public class MenuManager : MonoBehaviour {
 
 
 	void Awake () {
-		GC = GetComponent<GameController> (); 
+		gC = GetComponent<GameController> (); 
 
 		dicUA.Add ("Main Menu", toMainMenu);
 		dicUA.Add ("Select Menu", toSelectMenu);
@@ -67,7 +76,7 @@ public class MenuManager : MonoBehaviour {
 		dicUA.Add ("Quit Game", toGameQuit);
 		dicUA.Add ("Pause", toPauseGame);
 		dicUA.Add ("Resume", toResumeGame);
-		dicUA.Add ("Restart", GC.RestartGame);
+		dicUA.Add ("Restart", gC.RestartGame);
 
 		dicUA.Add ("Next", toResumeGame);
 		dicUA.Add ("New Game", toResumeGame);
@@ -85,6 +94,8 @@ public class MenuManager : MonoBehaviour {
 		// init select level button
 		SettingBtnSL ();
 
+		//changeScoreButtonActive (false);
+
 	}
 
 	void SettingBtnSL () {
@@ -94,12 +105,12 @@ public class MenuManager : MonoBehaviour {
 			btn.gameObject.transform.SetParent (selectContainer);
 			btn.GetComponentInChildren<Text> ().text = i.ToString ();
 			btn.transform.localScale = new Vector3 (1f, 1f, 1f);
-			btn.GetComponent<ButtonSL> ().SetGameController (GC);
+			btn.GetComponent<ButtonSL> ().SetGameController (gC);
 			btn.GetComponent<ButtonSL> ().SetMenuManager(this);
 			// TODO: можно сделать делегатом... меньше кода.
 			//btn.GetComponent<Button> ().onClick.AddListener (toSelectedLevel);
 			listBtnSL.Add (btn);
-			if (i <= GC.unlockLevel) {
+			if (i <= gC.unlockLevel) {
 				btn.GetComponent<ButtonSL> ().setSprite ("unlockL");
 				btn.GetComponent<Button> ().onClick.AddListener (btn.GetComponent<ButtonSL> ().btnClick);
 				string nameLevel = "Level" + i.ToString ();
@@ -165,11 +176,12 @@ public class MenuManager : MonoBehaviour {
 			setButtonElement (btnMenu2, "Settings", toSettings);
 			setButtonElement (btnMenu3, "Credits", toCredits);
 			setButtonElement (btnMenu4, "More Game", toMoreGames);
-			// TODO: настроить скриптом #if ...
 			/*
 			эппл запрещает делать кнопку выхода из приложения
 			*/
+			#if (!UNITY_IOS)
 			setButtonElement (btnMenu5, "Exit", toGameQuit);
+			#endif
 			break;
 
 		case GameState.ChooseLevel:
@@ -190,7 +202,6 @@ public class MenuManager : MonoBehaviour {
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 
-			// TODO: добавить в список для дальнейшего удаления
 			setButtonElement (btnMenu1, "Resume", toResumeGame);
 			setButtonElement (btnMenu2, "Restart", toRestartGame);
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
@@ -291,17 +302,17 @@ public class MenuManager : MonoBehaviour {
 	}
 
 	public void toNext () {
-		GC.RestartGame ();
+		gC.RestartGame ();
 	}
 
 	public void toStartGame (){
 		ChangeMenu (GameState.Game);
-		GC.StartGame ();
+		gC.StartGame ();
 	}
 
 	public void toRestartGame () { // Win/GameOver
-		GC.decLevel ();
-		GC.RestartGame ();
+		gC.decLevel ();
+		gC.RestartGame ();
 	}
 
 	public void toGameOver(){
@@ -314,30 +325,33 @@ public class MenuManager : MonoBehaviour {
 	}
 
 	public void toClearLevel(){
-		GC.setLevel (1);
+		gC.setLevel (1);
 		ChangeMenu (GameState.MainMenu);
 	}
 
 	public void toClearAllLevel (){
-		GC.clearAllLevel ();
+		gC.clearAllLevel ();
 		ChangeMenu (GameState.MainMenu);
 	}
 
 	public void toSelectedLevel (int lev){
-		GC.setLevel (lev);
+		gC.setLevel (lev);
 		ChangeMenu (GameState.Game);
-		GC.RestartGame ();
+		gC.RestartGame ();
 		
 	}
 
 	public void toClearAllUserData (){
 		PlayerPrefs.DeleteAll ();
 		PlayerPrefs.Save ();
+
+		gC.clearAllLevel ();
+
 		ChangeMenu (GameState.MainMenu);
 	}
 
 	public void toClearScullData () {
-		for (int i = 1; i <= GC.unlockLevel; i++) {
+		for (int i = 1; i <= gC.unlockLevel; i++) {
 			string nameLevel = "Level" + i.ToString ();
 			if (PlayerPrefs.HasKey (nameLevel)) {
 				PlayerPrefs.DeleteKey (nameLevel);
@@ -354,4 +368,18 @@ public class MenuManager : MonoBehaviour {
 		}
 	}
 
+	public void ShowHideText (UnityEngine.UI.Text text){
+		text.gameObject.SetActive (!text.gameObject.activeSelf);
+	}
+	public void ShowHideObj (GameObject obj){
+		obj.gameObject.SetActive (!obj.gameObject.activeSelf);
+	}
+
+	public void changeScoreButtonActive (bool b) {
+		ScoreButtonNextWave.gameObject.SetActive (b);
+	}
+
+	public void setTextWaveTxt (string str) {
+		waveLevel.text = str;
+	}
 }

@@ -5,18 +5,18 @@ using UnityEngine;
 public class TriggerSomeBorder : MonoBehaviour {
 
 	public GameController gameController;
-	public string name;
+	public string nameTrigger;
 
 	void OnTriggerEnter2D(Collider2D something)	{
 		// левая сторна екрана, наш замок
-		if (name == "left") {
+		if (nameTrigger == "left") {
 			if (something.gameObject.CompareTag ("Enemy")) {
 				something.gameObject.GetComponent<DieOnHit> ().Portal ();
 			}
 		}
 
 		// правая сторона екрана, пули уничтожаются
-		if (name == "right") {
+		if (nameTrigger == "right") {
 			if (something.gameObject.CompareTag ("Bullet")) {
 				gameController.RemoveBulletFromList (something.gameObject);
 				something.gameObject.SetActive (false);
