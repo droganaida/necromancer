@@ -166,6 +166,7 @@ OnApplicationQuit: Эта функция вызывается для всех и
 	// очистка открытых уровней
 	public void clearAllLevel (){
 		PlayerPrefs.SetInt ("unlockLevel", 1);
+		PlayerPrefs.Save ();
 		// save произойдет ниже
 		setLevel (1);
 	}

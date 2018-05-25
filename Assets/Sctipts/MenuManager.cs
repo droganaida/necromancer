@@ -85,8 +85,6 @@ public class MenuManager : MonoBehaviour {
 
 		// init all menu
 
-		// clear select button list
-		listBtnSL.Clear();
 	}
 
 	// Use this for initialization
@@ -94,11 +92,12 @@ public class MenuManager : MonoBehaviour {
 		// init select level button
 		SettingBtnSL ();
 
-		//changeScoreButtonActive (false);
-
 	}
 
 	void SettingBtnSL () {
+		// clear select button list
+		listBtnSL.Clear();
+
 		for (int i = 1; i < 11; i++) {
 			// TODO: может это все сапрятать в ButtonSL ?
 			GameObject btn = Instantiate (btnSLPrefab) as GameObject;
@@ -107,8 +106,6 @@ public class MenuManager : MonoBehaviour {
 			btn.transform.localScale = new Vector3 (1f, 1f, 1f);
 			btn.GetComponent<ButtonSL> ().SetGameController (gC);
 			btn.GetComponent<ButtonSL> ().SetMenuManager(this);
-			// TODO: можно сделать делегатом... меньше кода.
-			//btn.GetComponent<Button> ().onClick.AddListener (toSelectedLevel);
 			listBtnSL.Add (btn);
 			if (i <= gC.unlockLevel) {
 				btn.GetComponent<ButtonSL> ().setSprite ("unlockL");
@@ -188,6 +185,8 @@ public class MenuManager : MonoBehaviour {
 			panelMenu.SetActive (true);
 			panelButtonMenu.SetActive (true);
 			panelSelectMenu.SetActive (true);
+
+			RefreshBtnSL ();
 
 			setButtonElement (btnMenu5, "Main Menu", toMainMenu);
 			break;
@@ -326,11 +325,13 @@ public class MenuManager : MonoBehaviour {
 
 	public void toClearLevel(){
 		gC.setLevel (1);
+		RefreshBtnSL ();
 		ChangeMenu (GameState.MainMenu);
 	}
 
 	public void toClearAllLevel (){
 		gC.clearAllLevel ();
+		RefreshBtnSL ();
 		ChangeMenu (GameState.MainMenu);
 	}
 

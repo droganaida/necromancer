@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
-//using UnityEngine.EventSystems;
  
 
 public class PartWave  {
@@ -24,8 +23,7 @@ public class LevelBase {
 	public string backName;
 
 	public LevelBase () {
-		// TODO: maybe something seting?
-		//init ();
+		//
 	}
 
 	public void init (){
@@ -40,7 +38,6 @@ public class LevelBase {
 			// если номер волны больше предыдущей волны, то создаем новую волну
 			if (data [i,0] > prevWavePart) {
 				prevWavePart = data[i,0];
-				// TODO: может просто пихать при создании?
 				// первая волна
 				if (newWave != null) {
 					Debug.Log ("newWave.Count " + newWave.dataWaves.Count);
@@ -64,13 +61,6 @@ public class LevelBase {
 		}
 		Debug.Log ("dataLevel.Count " + dataLevel.Count);
 
-//		int count2 = 0;
-//		foreach (Wave item in dataLevel) {
-//			Debug.Log ("Wave #" + ++count2 );
-//			foreach (LevelManager.EnemiesUnit uName in item.goodWave) {
-//				Debug.Log (uName);
-//			}
-//		}
 	}
 	// список волн
 	public List <Wave> GetDataLevel () {
@@ -79,7 +69,7 @@ public class LevelBase {
 	//список юнитов в волне с номером инт
 	public List <LevelManager.EnemiesUnit> GetDataWaveOfIndex (int num) {
 		if (num > dataLevel.Count-1 || num < 0) {
-			Debug.Log ("num (" +num+") NOT IN dataLevel.Count ("+ dataLevel.Count+")");
+			Debug.Log ("num (" +num+") NOT IN dataLevel.Count ("+ dataLevel.Count +")");
 			return null;
 		}
 		return dataLevel [num].goodWave;
